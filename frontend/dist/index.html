@@ -1,1 +1,1332 @@
-<!DOCTYPE html><html><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=referrer content=same-origin><link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700" rel=stylesheet><link rel=apple-touch-icon sizes=180x180 href=/static/favicon.png><link rel=icon type=image/png href=/static/favicon.png><title>Certstream</title><link href=/static/css/app.css rel=stylesheet></head><body><div id=app></div><script type=text/javascript src=/static/js/manifest.47135fa.js></script><script type=text/javascript src=/static/js/vendor.47135fa.js></script><script type=text/javascript src=/static/js/app.47135fa.js></script></body></html>
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+  <meta name="theme-color" id="themeColor" content="#000000" />
+  <meta name="color-scheme" content="dark light" />
+  <title>CertStream · Live CT Firehose</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2' stroke-linecap='round'><path d='M18.364 19.364a9 9 0 1 0 -12.728 0'/><path d='M15.536 16.536a5 5 0 1 0 -7.072 0'/><path d='M11 13a1 1 0 1 0 2 0a1 1 0 1 0 -2 0'/></svg>" />
+  <script>
+    (function () {
+      var t = localStorage.getItem('certstream-theme') || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.dataset.theme = t;
+    })();
+  </script>
+  <style>
+    :root {
+      /* Monochrome dark: black ground, white ink */
+      --ground: #000000;
+      --surface: #0a0a0a;
+      --raised: #161616;
+      --border: #262626;
+      --rule: #171717;
+      --control: #333333;
+      --text: #ffffff;
+      --secondary: #d4d4d4;
+      --muted: #a3a3a3;
+      --accent: #ffffff;
+      --on-accent: #000000;
+      --pill-bg: #1c1c1c;
+      --pill-ink: #e5e5e5;
+      --mark-bg: #ffffff;
+      --mark-ink: #000000;
+      --backdrop: rgba(0, 0, 0, 0.6);
+      --tip-bg: #ffffff;
+      --tip-ink: #000000;
+
+      --radius-card: 6px;
+      --radius-control: 6px;
+      --row-height: 42px;
+      --control-h: 34px;
+      --icon: 17px;
+      --pad-x: 24px;
+      --fs-title: 20px;
+      --fs-body: 13px;
+
+      --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+      --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+      --font: "Public Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --ca-le-bg: #10291c; --ca-le-ink: #5fd394;
+      --ca-gts-bg: #0f2236; --ca-gts-ink: #6cb4f5;
+      --ca-cf-bg: #2e1d0c; --ca-cf-ink: #f6a560;
+      --ca-digicert-bg: #0b2827; --ca-digicert-ink: #4fd1c5;
+      --ca-sectigo-bg: #2f1419; --ca-sectigo-ink: #f27a8c;
+      --ca-amazon-bg: #2b240a; --ca-amazon-ink: #e8c547;
+      --ca-zerossl-bg: #0a2630; --ca-zerossl-ink: #5fd0ec;
+      --ca-microsoft-bg: #1d2a0d; --ca-microsoft-ink: #a3d65c;
+      --ca-godaddy-bg: #2a1f14; --ca-godaddy-ink: #d4a373;
+      color-scheme: dark;
+    }
+
+    :root[data-theme="light"] {
+      /* Monochrome light: white ground, black ink */
+      --ground: #ffffff;
+      --surface: #ffffff;
+      --raised: #f5f5f5;
+      --border: #e5e5e5;
+      --rule: #f0f0f0;
+      --control: #d4d4d4;
+      --text: #000000;
+      --secondary: #262626;
+      --muted: #595959;
+      --accent: #000000;
+      --on-accent: #ffffff;
+      --pill-bg: #f0f0f0;
+      --pill-ink: #262626;
+      --mark-bg: #000000;
+      --mark-ink: #ffffff;
+      --backdrop: rgba(0, 0, 0, 0.35);
+      --tip-bg: #000000;
+      --tip-ink: #ffffff;
+      --ca-le-bg: #dcfce7; --ca-le-ink: #14532d;
+      --ca-gts-bg: #dbeafe; --ca-gts-ink: #1e3a8a;
+      --ca-cf-bg: #ffedd5; --ca-cf-ink: #7c2d12;
+      --ca-digicert-bg: #ccfbf1; --ca-digicert-ink: #134e4a;
+      --ca-sectigo-bg: #ffe4e6; --ca-sectigo-ink: #881337;
+      --ca-amazon-bg: #fef9c3; --ca-amazon-ink: #713f12;
+      --ca-zerossl-bg: #cffafe; --ca-zerossl-ink: #164e63;
+      --ca-microsoft-bg: #ecfccb; --ca-microsoft-ink: #365314;
+      --ca-godaddy-bg: #f5ebe0; --ca-godaddy-ink: #5c3d1e;
+      color-scheme: light;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      -webkit-tap-highlight-color: transparent;
+      -webkit-text-size-adjust: 100%;
+      overscroll-behavior: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100dvh;
+      background: var(--ground);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: var(--fs-body);
+      line-height: 1.45;
+      font-variant-numeric: tabular-nums;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    button, select, .sheet-handle-area {
+      font-family: inherit;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    .ti {
+      width: var(--icon);
+      height: var(--icon);
+      flex-shrink: 0;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .num { font-variant-numeric: tabular-nums; }
+
+    .app {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto auto minmax(0, 1fr);
+      height: 100dvh;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-left: env(safe-area-inset-left, 0px);
+      padding-right: env(safe-area-inset-right, 0px);
+      overflow: hidden;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px var(--pad-x);
+      background: var(--ground);
+      border-bottom: 1px solid var(--border);
+      min-width: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      margin-right: auto;
+    }
+
+    .brand .ti { width: 20px; height: 20px; color: var(--text); stroke-width: 2; }
+
+    h1 {
+      font-size: var(--fs-title);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      white-space: nowrap;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 22px;
+      padding: 0 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      background: var(--pill-bg);
+      color: var(--text);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .status-pill.paused, .status-pill.stopped, .status-pill.disconnected { color: var(--muted); }
+    .status-pill.stopped .dot, .status-pill.disconnected .dot { background: transparent; box-shadow: inset 0 0 0 1.5px currentColor; } /* taste-skill-ignore: hollow dot, not elevation */
+
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+    .status-pill:not(.stopped):not(.paused):not(.disconnected) .dot { animation: pulse 2s var(--ease-out) infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+    .kpi-strip {
+      display: flex;
+      align-items: baseline;
+      gap: 22px;
+      min-width: 0;
+    }
+
+    .kpi-cell { display: flex; align-items: baseline; gap: 7px; min-width: 0; }
+    .kpi-label { color: var(--muted); font-size: 13px; white-space: nowrap; }
+    .kpi-val { font-size: 15px; font-weight: 600; white-space: nowrap; }
+    .kpi-unit { color: var(--muted); font-size: 12px; font-weight: 400; margin-left: 1px; }
+
+    .header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+    /* Toolbar */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px var(--pad-x);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      min-width: 0;
+    }
+
+    .search-wrap {
+      position: relative;
+      flex: 1 1 auto;
+      max-width: 460px;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+    }
+
+    .search-wrap > .ti {
+      position: absolute;
+      left: 10px;
+      width: 16px;
+      height: 16px;
+      color: var(--muted);
+      pointer-events: none;
+    }
+
+    .search-input {
+      width: 100%;
+      min-width: 0;
+      height: var(--control-h);
+      background: var(--ground);
+      border: 1px solid var(--control);
+      color: var(--text);
+      padding: 0 40px 0 34px;
+      border-radius: var(--radius-control);
+      font-family: var(--font);
+      font-size: var(--fs-body);
+      outline: none;
+      transition: border-color 150ms var(--ease-out);
+    }
+    .search-input::placeholder { color: var(--muted); }
+    .search-input:focus { border-color: var(--accent); }
+    .search-input.invalid { border-color: var(--text); border-style: dashed; }
+    .search-input::-webkit-search-cancel-button { display: none; }
+
+    .search-wrap .regex-btn {
+      position: absolute;
+      right: 4px;
+      width: 28px;
+      height: 26px;
+      border-radius: 4px;
+    }
+
+    .select-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .select-wrap > .ti {
+      position: absolute;
+      left: 10px;
+      width: 16px;
+      height: 16px;
+      color: var(--muted);
+      pointer-events: none;
+    }
+
+    .select {
+      height: var(--control-h);
+      background: var(--raised);
+      border: 1px solid var(--control);
+      color: var(--secondary);
+      padding: 0 10px 0 32px;
+      border-radius: var(--radius-control);
+      font-size: var(--fs-body);
+      font-weight: 500;
+      cursor: pointer;
+      max-width: 220px;
+      transition: border-color 140ms var(--ease-out), color 140ms var(--ease-out);
+    }
+
+    .spacer { flex: 1; }
+
+    /* Icon buttons */
+    .btn {
+      position: relative;
+      height: var(--control-h);
+      min-width: var(--control-h);
+      padding: 0 8px;
+      background: var(--raised);
+      border: 1px solid var(--control);
+      color: var(--secondary);
+      border-radius: var(--radius-control);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      flex-shrink: 0;
+      transition: transform 140ms var(--ease-out), background-color 140ms var(--ease-out), border-color 140ms var(--ease-out), color 140ms var(--ease-out);
+    }
+    .btn:active { transform: scale(0.94); }
+    .btn:focus-visible, .select:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
+
+    .btn[aria-pressed="true"], .btn.is-frozen, .btn.is-start {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--on-accent);
+    }
+    .btn.is-stop { color: var(--text); }
+    .btn:disabled { opacity: 0.5; }
+    .btn .count:empty { display: none; }
+
+    .btn .swap { display: contents; }
+    .theme-moon { display: none; }
+    :root[data-theme="light"] .theme-sun { display: none; }
+    :root[data-theme="light"] .theme-moon { display: block; }
+    .btn [data-when] { display: none; }
+    .btn[data-state="a"] [data-when="a"], .btn[data-state="b"] [data-when="b"] { display: block; }
+
+    /* Tooltip: hover-capable pointers only; a real overlay, so it may float */
+    @media (hover: hover) and (pointer: fine) {
+      .btn[data-tip]::after {
+        content: attr(data-tip);
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 50%;
+        transform: translate(-50%, -2px);
+        padding: 4px 8px;
+        border-radius: 4px;
+        background: var(--tip-bg);
+        color: var(--tip-ink);
+        font-size: 12px;
+        font-weight: 500;
+        white-space: nowrap;
+        pointer-events: none;
+        opacity: 0;
+        z-index: 50;
+        transition: opacity 120ms var(--ease-out), transform 120ms var(--ease-out);
+      }
+      .btn[data-tip]:hover::after { opacity: 1; transform: translate(-50%, 0); transition-delay: 350ms; }
+      .btn.tip-left[data-tip]::after { left: auto; right: 0; transform: translateY(-2px); }
+      .btn.tip-left[data-tip]:hover::after { transform: translateY(0); }
+
+      .btn:not([aria-pressed="true"]):not(.is-frozen):not(.is-start):hover, .select:hover { border-color: var(--muted); color: var(--text); }
+      tbody tr:hover { background: var(--raised); }
+      .domain-pill:hover { border-color: var(--text); color: var(--text); }
+    }
+
+    /* Workspace */
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      overflow: hidden;
+      position: relative;
+      min-height: 0;
+      background: var(--surface);
+    }
+
+    .table-container {
+      overflow-y: auto;
+      overflow-x: hidden;
+      overscroll-behavior: contain;
+      height: 100%;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      background: var(--surface);
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 13px;
+      text-align: left;
+      white-space: nowrap;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      z-index: 5;
+    }
+    thead th:first-child { padding-left: var(--pad-x); }
+    thead th.num { text-align: right; }
+
+    tbody tr {
+      height: var(--row-height);
+      border-bottom: 1px solid var(--rule);
+      cursor: pointer;
+      transition: background-color 120ms ease;
+    }
+    tbody tr:active { background: var(--raised); }
+    tbody tr.selected { background: var(--raised); box-shadow: inset 2px 0 0 var(--accent); } /* taste-skill-ignore: selection edge, not elevation */
+
+    td {
+      padding: 8px 16px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    td:first-child { padding-left: var(--pad-x); }
+
+    .col-time { width: 112px; color: var(--muted); }
+    .col-domain { font-weight: 500; }
+    .col-sans { width: 64px; text-align: right; color: var(--secondary); }
+    .col-issuer { width: 190px; }
+    .col-log { width: 200px; color: var(--muted); }
+
+    .domain-line { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mobile-subline { display: none; }
+
+    .badge {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      background: var(--pill-bg);
+      color: var(--pill-ink);
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+    .badge.ca-le { background: var(--ca-le-bg); color: var(--ca-le-ink); }
+    .badge.ca-gts { background: var(--ca-gts-bg); color: var(--ca-gts-ink); }
+    .badge.ca-cf { background: var(--ca-cf-bg); color: var(--ca-cf-ink); }
+    .badge.ca-digicert { background: var(--ca-digicert-bg); color: var(--ca-digicert-ink); }
+    .badge.ca-sectigo { background: var(--ca-sectigo-bg); color: var(--ca-sectigo-ink); }
+    .badge.ca-amazon { background: var(--ca-amazon-bg); color: var(--ca-amazon-ink); }
+    .badge.ca-zerossl { background: var(--ca-zerossl-bg); color: var(--ca-zerossl-ink); }
+    .badge.ca-microsoft { background: var(--ca-microsoft-bg); color: var(--ca-microsoft-ink); }
+    .badge.ca-godaddy { background: var(--ca-godaddy-bg); color: var(--ca-godaddy-ink); }
+
+    .wildcard { color: var(--muted); font-weight: 700; }
+    .extra-domains { color: var(--muted); font-weight: 400; margin-left: 8px; font-size: 12px; }
+
+    mark { background: var(--mark-bg); color: var(--mark-ink); border-radius: 2px; padding: 0 1px; }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 72px 24px;
+      color: var(--muted);
+      text-align: center;
+    }
+    .empty-state .ti { width: 28px; height: 28px; stroke-width: 1.5; }
+
+    /* Inspector */
+    .backdrop {
+      position: fixed;
+      inset: 0;
+      background: var(--backdrop);
+      z-index: 25;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 220ms var(--ease-drawer);
+    }
+
+    .inspector {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 440px;
+      max-width: 100vw;
+      background: var(--ground);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      z-index: 30;
+      transform: translateX(100%);
+      transition: transform 260ms var(--ease-drawer);
+      will-change: transform;
+    }
+    .workspace.has-selection .inspector { transform: translateX(0); }
+
+    .sheet-handle-area { display: none; padding: 10px 0 2px; justify-content: center; cursor: grab; touch-action: none; }
+    .sheet-handle { width: 36px; height: 4px; border-radius: 999px; background: var(--control); }
+
+    .inspector-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px 12px 20px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .inspector-title {
+      flex: 1;
+      min-width: 0;
+      font-size: 15px;
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .inspector-body {
+      padding: 20px;
+      padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .section-title { font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 8px; }
+
+    .kv-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      padding: 12px 14px;
+      display: grid;
+      grid-template-columns: 92px minmax(0, 1fr);
+      gap: 8px 12px;
+    }
+    .kv-key { color: var(--muted); }
+    .kv-val { word-break: break-all; }
+
+    .domain-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      max-height: 200px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      background: var(--surface);
+      padding: 10px;
+      border-radius: var(--radius-card);
+      border: 1px solid var(--border);
+    }
+
+    .domain-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      min-height: 28px;
+      font-size: 13px;
+      padding: 3px 8px;
+      background: var(--raised);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--secondary);
+      text-decoration: none;
+      max-width: 100%;
+      transition: transform 120ms var(--ease-out), border-color 120ms var(--ease-out), color 120ms var(--ease-out);
+    }
+    .domain-pill span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .domain-pill .ti { width: 13px; height: 13px; color: var(--muted); }
+    .domain-pill:active { transform: scale(0.97); }
+
+    pre.raw-json {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      padding: 12px;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--secondary);
+      overflow-x: auto;
+      overscroll-behavior: contain;
+      max-height: 300px;
+    }
+
+    /* Desktop: room for the inspector beside the table */
+    @media (min-width: 1100px) {
+      .workspace.has-selection .table-container { padding-right: 440px; }
+    }
+
+    /* Tablet: drop the CT log column, keep the table */
+    @media (max-width: 1099px) and (min-width: 821px) {
+      .col-log { display: none; }
+      .kpi-strip { gap: 16px; }
+    }
+
+    /* Phone & small tablet */
+    @media (max-width: 820px) {
+      :root {
+        --pad-x: 16px;
+        --control-h: 44px;
+        --icon: 20px;
+      }
+
+      header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas: "brand actions" "kpis kpis";
+        row-gap: 12px;
+        column-gap: 12px;
+        padding: 10px var(--pad-x) 12px;
+      }
+      .brand { grid-area: brand; }
+      .header-actions { grid-area: actions; }
+      .header-actions .btn { --control-h: 40px; }
+
+      .kpi-strip {
+        grid-area: kpis;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        padding-top: 10px;
+        border-top: 1px solid var(--border);
+      }
+      .kpi-cell { flex-direction: column; align-items: flex-start; gap: 1px; }
+      .kpi-cell:last-child { align-items: flex-end; }
+      .kpi-label { font-size: 12px; }
+      .kpi-val { font-size: 15px; }
+
+      .toolbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto auto auto;
+        grid-template-areas:
+          "search search search search search"
+          "select wild sans clear export";
+        gap: 8px;
+        padding: 10px var(--pad-x);
+      }
+      .search-wrap { grid-area: search; max-width: none; }
+      .select-wrap { grid-area: select; min-width: 0; }
+      #wildcardBtn { grid-area: wild; }
+      #multiSanBtn { grid-area: sans; }
+      #clearBtn { grid-area: clear; }
+      #exportBtn { grid-area: export; }
+      .spacer { display: none; }
+
+      /* 16px stops iOS Safari zooming into focused fields */
+      .search-input { font-size: 16px; padding: 0 48px 0 38px; }
+      .search-wrap > .ti { left: 12px; width: 18px; height: 18px; }
+      .search-wrap .regex-btn { width: 36px; height: 36px; right: 4px; }
+      .select { width: 100%; max-width: none; font-size: 16px; padding-left: 36px; }
+      .select-wrap > .ti { left: 12px; width: 18px; height: 18px; }
+
+      /* Rows become two-line cards */
+      thead { display: none; }
+      table, tbody, tr, td { display: block; width: 100%; }
+      tbody tr { height: auto; padding: 11px var(--pad-x); }
+      td, td:first-child { padding: 0; }
+      .col-time, .col-sans, .col-issuer, .col-log, .extra-domains { display: none; }
+      .col-domain { font-size: 15px; }
+      .domain-line { margin-bottom: 6px; }
+      .mobile-subline {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--muted);
+        min-width: 0;
+      }
+      .mobile-subline > * { flex-shrink: 0; }
+      .mobile-subline .badge { flex-shrink: 1; min-width: 0; }
+      .mobile-subline .san-count {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        color: var(--secondary);
+      }
+      .mobile-subline .san-count .ti { width: 14px; height: 14px; color: var(--muted); }
+      .mobile-subline .log-name {
+        flex-shrink: 1;
+        margin-left: auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* Bottom sheet inspector */
+      .workspace.has-selection .backdrop { opacity: 1; pointer-events: auto; }
+      .sheet-handle-area { display: flex; }
+      .inspector {
+        top: auto;
+        left: 0;
+        width: 100%;
+        height: 84dvh;
+        border-left: none;
+        border-top: 1px solid var(--border);
+        border-radius: 14px 14px 0 0;
+        transform: translateY(100%);
+      }
+      .workspace.has-selection .inspector { transform: translateY(0); }
+      .inspector-header { padding: 6px var(--pad-x) 12px; }
+      .inspector-header .btn { --control-h: 40px; }
+      .inspector-body { padding: 16px var(--pad-x) calc(20px + env(safe-area-inset-bottom, 0px)); }
+      .domain-pill { min-height: 34px; }
+    }
+
+    @media (max-width: 360px) {
+      .kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 10px; }
+      .kpi-cell:last-child { align-items: flex-start; }
+      .status-pill .label { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="ti-asterisk" viewBox="0 0 24 24"><path d="M12 12l8 -4.5" /><path d="M12 12v9" /><path d="M12 12l-8 -4.5" /><path d="M12 12l8 4.5" /><path d="M12 3v9" /><path d="M12 12l-8 4.5" /></symbol>
+  <symbol id="ti-broadcast" viewBox="0 0 24 24"><path d="M18.364 19.364a9 9 0 1 0 -12.728 0" /><path d="M15.536 16.536a5 5 0 1 0 -7.072 0" /><path d="M11 13a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /></symbol>
+  <symbol id="ti-certificate" viewBox="0 0 24 24"><path d="M12 15a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /><path d="M13 17.5v4.5l2 -1.5l2 1.5v-4.5" /><path d="M10 19h-5a2 2 0 0 1 -2 -2v-10c0 -1.1 .9 -2 2 -2h14a2 2 0 0 1 2 2v10a2 2 0 0 1 -1 1.73" /><path d="M6 9l12 0" /><path d="M6 12l3 0" /><path d="M6 15l2 0" /></symbol>
+  <symbol id="ti-check" viewBox="0 0 24 24"><path d="M5 12l5 5l10 -10" /></symbol>
+  <symbol id="ti-copy" viewBox="0 0 24 24"><path d="M7 9.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667l0 -8.666" /><path d="M4.012 16.737a2.005 2.005 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1" /></symbol>
+  <symbol id="ti-download" viewBox="0 0 24 24"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" /><path d="M7 11l5 5l5 -5" /><path d="M12 4l0 12" /></symbol>
+  <symbol id="ti-external-link" viewBox="0 0 24 24"><path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6" /><path d="M11 13l9 -9" /><path d="M15 4h5v5" /></symbol>
+  <symbol id="ti-filter" viewBox="0 0 24 24"><path d="M4 4h16v2.172a2 2 0 0 1 -.586 1.414l-4.414 4.414v7l-6 2v-8.5l-4.48 -4.928a2 2 0 0 1 -.52 -1.345v-2.227" /></symbol>
+  <symbol id="ti-player-pause" viewBox="0 0 24 24"><path d="M6 6a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v12a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1l0 -12" /><path d="M14 6a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v12a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1l0 -12" /></symbol>
+  <symbol id="ti-player-play" viewBox="0 0 24 24"><path d="M7 4v16l13 -8l-13 -8" /></symbol>
+  <symbol id="ti-player-stop" viewBox="0 0 24 24"><path d="M5 7a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2l0 -10" /></symbol>
+  <symbol id="ti-regex" viewBox="0 0 24 24"><path d="M6.5 15a2.5 2.5 0 1 1 0 5a2.5 2.5 0 0 1 0 -5" /><path d="M17 7.875l3 -1.687" /><path d="M17 7.875v3.375" /><path d="M17 7.875l-3 -1.687" /><path d="M17 7.875l3 1.688" /><path d="M17 4.5v3.375" /><path d="M17 7.875l-3 1.688" /></symbol>
+  <symbol id="ti-search" viewBox="0 0 24 24"><path d="M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></symbol>
+  <symbol id="ti-stack-2" viewBox="0 0 24 24"><path d="M12 4l-8 4l8 4l8 -4l-8 -4" /><path d="M4 12l8 4l8 -4" /><path d="M4 16l8 4l8 -4" /></symbol>
+  <symbol id="ti-trash" viewBox="0 0 24 24"><path d="M4 7l16 0" /><path d="M10 11l0 6" /><path d="M14 11l0 6" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" /><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" /></symbol>
+  <symbol id="ti-world-www" viewBox="0 0 24 24"><path d="M19.5 7a9 9 0 0 0 -7.5 -4a8.991 8.991 0 0 0 -7.484 4" /><path d="M11.5 3a16.989 16.989 0 0 0 -1.826 4" /><path d="M12.5 3a16.989 16.989 0 0 1 1.828 4" /><path d="M19.5 17a9 9 0 0 1 -7.5 4a8.991 8.991 0 0 1 -7.484 -4" /><path d="M11.5 21a16.989 16.989 0 0 1 -1.826 -4" /><path d="M12.5 21a16.989 16.989 0 0 0 1.828 -4" /><path d="M2 10l1 4l1.5 -4l1.5 4l1 -4" /><path d="M17 10l1 4l1.5 -4l1.5 4l1 -4" /><path d="M9.5 10l1 4l1.5 -4l1.5 4l1 -4" /></symbol>
+  <symbol id="ti-x" viewBox="0 0 24 24"><path d="M18 6l-12 12" /><path d="M6 6l12 12" /></symbol>
+  <symbol id="ti-sun" viewBox="0 0 24 24"><path d="M8 12a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" /><path d="M3 12h1m8 -9v1m8 8h1m-9 8v1m-6.4 -15.4l.7 .7m12.1 -.7l-.7 .7m0 11.4l.7 .7m-12.1 -.7l-.7 .7" /></symbol>
+  <symbol id="ti-moon" viewBox="0 0 24 24"><path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454l0 .008" /></symbol>
+</svg>
+  <div class="app">
+    <header>
+      <div class="brand">
+        <svg class="ti" aria-hidden="true"><use href="#ti-broadcast" /></svg>
+        <h1>CertStream</h1>
+        <div id="statusPill" class="status-pill" role="status">
+          <span class="dot"></span>
+          <span id="statusText" class="label">Live</span>
+        </div>
+      </div>
+
+      <div class="kpi-strip">
+        <div class="kpi-cell">
+          <span class="kpi-label">Rate</span>
+          <span class="kpi-val num"><span id="rateVal">0</span><span class="kpi-unit">/s</span></span>
+        </div>
+        <div class="kpi-cell">
+          <span class="kpi-label">Session</span>
+          <span id="sessionVal" class="kpi-val num">0</span>
+        </div>
+        <div class="kpi-cell">
+          <span class="kpi-label">Matched</span>
+          <span id="matchedVal" class="kpi-val num">0</span>
+        </div>
+        <div class="kpi-cell">
+          <span class="kpi-label">Processed</span>
+          <span id="serverTotalVal" class="kpi-val num">0</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button id="themeBtn" class="btn" aria-label="Switch to light theme" data-tip="Light theme">
+          <svg class="ti theme-sun" aria-hidden="true"><use href="#ti-sun" /></svg>
+          <svg class="ti theme-moon" aria-hidden="true"><use href="#ti-moon" /></svg>
+        </button>
+        <button id="pauseBtn" class="btn" data-state="a" aria-pressed="false" aria-label="Freeze table" data-tip="Freeze table (Space)">
+          <svg class="ti" data-when="a" aria-hidden="true"><use href="#ti-player-pause" /></svg>
+          <svg class="ti" data-when="b" aria-hidden="true"><use href="#ti-player-play" /></svg>
+          <span id="pauseCount" class="count num"></span>
+        </button>
+        <button id="streamBtn" class="btn is-stop tip-left" data-state="a" aria-label="Stop stream" data-tip="Stop CT polling">
+          <svg class="ti" data-when="a" aria-hidden="true"><use href="#ti-player-stop" /></svg>
+          <svg class="ti" data-when="b" aria-hidden="true"><use href="#ti-player-play" /></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="toolbar">
+      <div class="search-wrap">
+        <svg class="ti" aria-hidden="true"><use href="#ti-search" /></svg>
+        <input id="filterInput" class="search-input" type="search" inputmode="search" enterkeyhint="search" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="off" placeholder="Filter domains, issuers, logs" aria-label="Filter certificates" />
+        <button id="regexBtn" class="btn regex-btn" aria-pressed="false" aria-label="Regex matching" data-tip="Regex matching">
+          <svg class="ti" aria-hidden="true"><use href="#ti-regex" /></svg>
+        </button>
+      </div>
+
+      <div class="select-wrap">
+        <svg class="ti" aria-hidden="true"><use href="#ti-certificate" /></svg>
+        <select id="issuerSelect" class="select" aria-label="Filter by certificate authority">
+          <option value="">All CAs</option>
+          <option value="Let's Encrypt">Let's Encrypt</option>
+          <option value="Google Trust Services">Google Trust</option>
+          <option value="Cloudflare">Cloudflare</option>
+          <option value="DigiCert">DigiCert</option>
+          <option value="Sectigo">Sectigo</option>
+          <option value="Amazon">Amazon</option>
+          <option value="ZeroSSL">ZeroSSL</option>
+        </select>
+      </div>
+
+      <button id="wildcardBtn" class="btn" aria-pressed="false" aria-label="Wildcards only" data-tip="Wildcards only">
+        <svg class="ti" aria-hidden="true"><use href="#ti-asterisk" /></svg>
+      </button>
+      <button id="multiSanBtn" class="btn" aria-pressed="false" aria-label="Five or more SANs" data-tip="5+ SANs only">
+        <svg class="ti" aria-hidden="true"><use href="#ti-stack-2" /></svg>
+      </button>
+
+      <div class="spacer"></div>
+
+      <button id="clearBtn" class="btn" aria-label="Clear feed" data-tip="Clear feed">
+        <svg class="ti" aria-hidden="true"><use href="#ti-trash" /></svg>
+      </button>
+      <button id="exportBtn" class="btn tip-left" aria-label="Export JSONL" data-tip="Export JSONL">
+        <svg class="ti" aria-hidden="true"><use href="#ti-download" /></svg>
+      </button>
+    </div>
+
+    <div id="workspace" class="workspace">
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th class="col-time">Seen (UTC)</th>
+              <th class="col-domain">Domain &amp; SANs</th>
+              <th class="col-sans num">SANs</th>
+              <th class="col-issuer">Issuer</th>
+              <th class="col-log">CT log</th>
+            </tr>
+          </thead>
+          <tbody id="certBody"></tbody>
+        </table>
+        <div id="emptyState" class="empty-state">
+          <svg class="ti" aria-hidden="true"><use href="#ti-broadcast" /></svg>
+          <span id="emptyText">Waiting for certificates from CT logs</span>
+        </div>
+      </div>
+
+      <div id="backdrop" class="backdrop"></div>
+
+      <aside id="inspector" class="inspector" aria-label="Certificate details">
+        <div id="sheetHandle" class="sheet-handle-area"><div class="sheet-handle"></div></div>
+        <div class="inspector-header">
+          <span id="inspectorTitle" class="inspector-title">Certificate</span>
+          <button id="copyJsonBtn" class="btn" data-state="a" aria-label="Copy JSON" data-tip="Copy JSON">
+            <svg class="ti" data-when="a" aria-hidden="true"><use href="#ti-copy" /></svg>
+            <svg class="ti" data-when="b" aria-hidden="true" ><use href="#ti-check" /></svg>
+          </button>
+          <button id="closeInspector" class="btn tip-left" aria-label="Close" data-tip="Close (Esc)">
+            <svg class="ti" aria-hidden="true"><use href="#ti-x" /></svg>
+          </button>
+        </div>
+        <div id="inspectorContent" class="inspector-body"></div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const MAX_ROWS = 250;
+    const MOBILE = window.matchMedia('(max-width: 820px)');
+    const state = {
+      paused: false,
+      streamEnabled: true,
+      wsConnected: false,
+      queuedWhilePaused: 0,
+      useRegex: false,
+      filterText: '',
+      compiledRegex: null,
+      issuerFilter: '',
+      onlyWildcard: false,
+      onlyMultiSan: false,
+      sessionTotal: 0,
+      matchedTotal: 0,
+      recentTimestamps: [],
+      items: [],
+      selectedItem: null,
+      selectedId: null,
+      nextId: 1
+    };
+
+    const $ = id => document.getElementById(id);
+    const el = {
+      statusPill: $('statusPill'), statusText: $('statusText'),
+      rateVal: $('rateVal'), sessionVal: $('sessionVal'), matchedVal: $('matchedVal'), serverTotalVal: $('serverTotalVal'),
+      filterInput: $('filterInput'), regexBtn: $('regexBtn'), issuerSelect: $('issuerSelect'),
+      wildcardBtn: $('wildcardBtn'), multiSanBtn: $('multiSanBtn'),
+      pauseBtn: $('pauseBtn'), pauseCount: $('pauseCount'), streamBtn: $('streamBtn'),
+      clearBtn: $('clearBtn'), exportBtn: $('exportBtn'),
+      certBody: $('certBody'), emptyState: $('emptyState'), emptyText: $('emptyText'),
+      workspace: $('workspace'), backdrop: $('backdrop'), inspector: $('inspector'), sheetHandle: $('sheetHandle'),
+      inspectorTitle: $('inspectorTitle'), inspectorContent: $('inspectorContent'),
+      copyJsonBtn: $('copyJsonBtn'), closeInspector: $('closeInspector')
+    };
+
+    const themeBtn = $('themeBtn');
+    function applyTheme(t) {
+      document.documentElement.dataset.theme = t;
+      localStorage.setItem('certstream-theme', t);
+      document.getElementById('themeColor').setAttribute('content', t === 'light' ? '#ffffff' : '#000000');
+      const next = t === 'light' ? 'dark' : 'light';
+      themeBtn.setAttribute('aria-label', `Switch to ${next} theme`);
+      themeBtn.dataset.tip = next === 'light' ? 'Light theme' : 'Dark theme';
+    }
+    applyTheme(document.documentElement.dataset.theme);
+    themeBtn.addEventListener('click', () => applyTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'));
+
+    const icon = name => `<svg class="ti" aria-hidden="true"><use href="#ti-${name}" /></svg>`;
+
+    function setToggle(btn, on) {
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+
+    function updateStatusIndicator() {
+      el.statusPill.classList.remove('paused', 'disconnected', 'stopped');
+      const s = el.streamBtn;
+      if (!state.streamEnabled) {
+        el.statusPill.classList.add('stopped');
+        el.statusText.textContent = 'Stopped';
+        s.dataset.state = 'b';
+        s.classList.replace('is-stop', 'is-start');
+        s.setAttribute('aria-label', 'Start stream');
+        s.dataset.tip = 'Start CT polling';
+        el.emptyText.textContent = 'Stream stopped. Press play to resume.';
+        return;
+      }
+      s.dataset.state = 'a';
+      s.classList.replace('is-start', 'is-stop');
+      s.setAttribute('aria-label', 'Stop stream');
+      s.dataset.tip = 'Stop CT polling';
+      el.emptyText.textContent = state.items.length ? 'No certificates match these filters' : 'Waiting for certificates from CT logs';
+
+      if (!state.wsConnected) {
+        el.statusPill.classList.add('disconnected');
+        el.statusText.textContent = 'Offline';
+      } else if (state.paused) {
+        el.statusPill.classList.add('paused');
+        el.statusText.textContent = 'Frozen';
+      } else {
+        el.statusText.textContent = 'Live';
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str == null ? '' : str).replace(/[&<>"']/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]));
+    }
+
+    function updateFilterCompiler() {
+      el.filterInput.classList.remove('invalid');
+      state.compiledRegex = null;
+      if (!state.filterText || !state.useRegex) return;
+      try { state.compiledRegex = new RegExp(state.filterText, 'i'); }
+      catch (e) { el.filterInput.classList.add('invalid'); }
+    }
+
+    function matchesFilter(item) {
+      if (state.issuerFilter && !item.issuer.toLowerCase().includes(state.issuerFilter.toLowerCase())) return false;
+      if (state.onlyWildcard && !item.hasWildcard) return false;
+      if (state.onlyMultiSan && item.domains.length < 5) return false;
+      if (!state.filterText) return true;
+      if (state.useRegex) return !!state.compiledRegex && state.compiledRegex.test(item.searchString);
+      return item.searchString.includes(state.filterText.toLowerCase());
+    }
+
+    const CA_MATCH = [
+      ['le', "let's encrypt"], ['gts', 'google'], ['cf', 'cloudflare'], ['digicert', 'digicert'],
+      ['sectigo', 'sectigo'], ['amazon', 'amazon'], ['zerossl', 'zerossl'], ['microsoft', 'microsoft'],
+      ['godaddy', 'godaddy']
+    ];
+    function issuerBadgeClass(issuer) {
+      const s = issuer.toLowerCase();
+      const hit = CA_MATCH.find(([, needle]) => s.includes(needle));
+      return hit ? `badge ca-${hit[0]}` : 'badge';
+    }
+
+    function highlightMatch(text) {
+      const safe = escapeHtml(text);
+      if (!state.filterText) return safe;
+      try {
+        const re = state.useRegex && state.compiledRegex
+          ? state.compiledRegex
+          : new RegExp(escapeHtml(state.filterText).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        return safe.replace(re, m => `<mark>${m}</mark>`);
+      } catch (_) { return safe; }
+    }
+
+    function normalizeMessage(msg) {
+      if (!msg || msg.message_type !== 'certificate_update' || !msg.data) return null;
+      const d = msg.data;
+      const leaf = d.leaf_cert || {};
+      const domains = Array.isArray(leaf.all_domains) && leaf.all_domains.length
+        ? leaf.all_domains
+        : (leaf.subject && leaf.subject.CN ? [leaf.subject.CN] : []);
+      if (!domains.length) return null;
+      const issuer = (leaf.issuer && (leaf.issuer.O || leaf.issuer.CN)) || 'Unknown';
+      const sourceName = (d.source && d.source.name) || 'Unknown CT log';
+      const seenMs = d.seen ? d.seen * 1000 : Date.now();
+      return {
+        id: state.nextId++,
+        timeStr: new Date(seenMs).toISOString().slice(11, 19),
+        domains,
+        primaryDomain: domains[0],
+        hasWildcard: domains.some(dm => dm.startsWith('*.')),
+        issuer,
+        sourceName,
+        raw: msg,
+        searchString: (domains.join(' ') + ' ' + issuer + ' ' + sourceName).toLowerCase()
+      };
+    }
+
+    function domainHtml(domain) {
+      return domain.startsWith('*.')
+        ? `<span class="wildcard">*.</span>${highlightMatch(domain.slice(2))}`
+        : highlightMatch(domain);
+    }
+
+    function createRowElement(item) {
+      const tr = document.createElement('tr');
+      tr.dataset.id = item.id;
+      if (item.id === state.selectedId) tr.classList.add('selected');
+      const extra = item.domains.length > 1
+        ? `<span class="extra-domains">${item.domains.slice(1, 4).map(highlightMatch).join(', ')}${item.domains.length > 4 ? '…' : ''}</span>`
+        : '';
+      const badgeCls = issuerBadgeClass(item.issuer);
+      tr.innerHTML = `
+        <td class="col-time num">${item.timeStr}</td>
+        <td class="col-domain">
+          <div class="domain-line">${domainHtml(item.primaryDomain)}${extra}</div>
+          <div class="mobile-subline">
+            <span class="num">${item.timeStr}</span>
+            <span class="${badgeCls}">${escapeHtml(item.issuer)}</span>
+            ${item.domains.length > 1 ? `<span class="san-count num" title="${item.domains.length} SANs">${icon('stack-2')}${item.domains.length}</span>` : ''}
+            <span class="log-name">${escapeHtml(item.sourceName)}</span>
+          </div>
+        </td>
+        <td class="col-sans num">${item.domains.length}</td>
+        <td class="col-issuer"><span class="${badgeCls}">${escapeHtml(item.issuer)}</span></td>
+        <td class="col-log">${escapeHtml(item.sourceName)}</td>`;
+      tr.addEventListener('click', () => selectItem(item));
+      return tr;
+    }
+
+    let pendingInsertions = [];
+    let rafScheduled = false;
+
+    function ingestMessage(msg) {
+      if (!state.streamEnabled) return;
+      state.sessionTotal++;
+      state.recentTimestamps.push(Date.now());
+      const item = normalizeMessage(msg);
+      if (!item || !matchesFilter(item)) return;
+      state.matchedTotal++;
+      if (state.paused) {
+        state.queuedWhilePaused++;
+        el.pauseCount.textContent = state.queuedWhilePaused > 999 ? '999+' : String(state.queuedWhilePaused);
+        return;
+      }
+      state.items.unshift(item);
+      if (state.items.length > MAX_ROWS) state.items.pop();
+      pendingInsertions.push(item);
+      if (!rafScheduled) {
+        rafScheduled = true;
+        requestAnimationFrame(flushRender);
+      }
+    }
+
+    function flushRender() {
+      rafScheduled = false;
+      if (!pendingInsertions.length) return;
+      el.emptyState.style.display = 'none';
+      const batch = pendingInsertions.splice(0);
+      const frag = document.createDocumentFragment();
+      for (const item of batch) frag.insertBefore(createRowElement(item), frag.firstChild);
+      el.certBody.insertBefore(frag, el.certBody.firstChild);
+      while (el.certBody.children.length > MAX_ROWS) el.certBody.removeChild(el.certBody.lastChild);
+    }
+
+    function rerenderTable() {
+      pendingInsertions = [];
+      el.certBody.innerHTML = '';
+      const filtered = state.items.filter(matchesFilter);
+      updateStatusIndicator();
+      if (!filtered.length) { el.emptyState.style.display = 'flex'; return; }
+      el.emptyState.style.display = 'none';
+      const frag = document.createDocumentFragment();
+      for (const item of filtered) frag.appendChild(createRowElement(item));
+      el.certBody.appendChild(frag);
+    }
+
+    function closeDrawer() {
+      state.selectedId = null;
+      state.selectedItem = null;
+      el.inspector.style.transform = '';
+      el.workspace.classList.remove('has-selection');
+      for (const row of el.certBody.children) row.classList.remove('selected');
+    }
+
+    function fmtDate(sec) {
+      return sec ? new Date(sec * 1000).toISOString().replace('T', ' ').slice(0, 16) + ' UTC' : '-';
+    }
+
+    function selectItem(item) {
+      state.selectedId = item.id;
+      state.selectedItem = item;
+      el.inspector.style.transform = '';
+      for (const row of el.certBody.children) row.classList.toggle('selected', Number(row.dataset.id) === item.id);
+      el.workspace.classList.add('has-selection');
+
+      const d = item.raw.data;
+      const leaf = d.leaf_cert || {};
+      el.inspectorTitle.textContent = item.primaryDomain;
+
+      const pills = item.domains.map(dm => {
+        const host = dm.replace(/^\*\./, '');
+        return `<a class="domain-pill" href="https://${encodeURIComponent(host)}" target="_blank" rel="noopener noreferrer"><span>${escapeHtml(dm)}</span>${icon('external-link')}</a>`;
+      }).join('');
+
+      el.inspectorContent.innerHTML = `
+        <div>
+          <div class="section-title">Subject alternative names (${item.domains.length})</div>
+          <div class="domain-pills">${pills}</div>
+        </div>
+        <div>
+          <div class="section-title">Certificate</div>
+          <div class="kv-card">
+            <div class="kv-key">Issuer</div><div class="kv-val">${escapeHtml(leaf.issuer && leaf.issuer.aggregated || item.issuer)}</div>
+            <div class="kv-key">Subject</div><div class="kv-val">${escapeHtml(leaf.subject && leaf.subject.aggregated || item.primaryDomain)}</div>
+            <div class="kv-key">Valid from</div><div class="kv-val num">${fmtDate(leaf.not_before)}</div>
+            <div class="kv-key">Valid until</div><div class="kv-val num">${fmtDate(leaf.not_after)}</div>
+            <div class="kv-key">Algorithm</div><div class="kv-val">${escapeHtml(leaf.signature_algorithm || '-')}</div>
+            <div class="kv-key">Fingerprint</div><div class="kv-val num">${escapeHtml(leaf.fingerprint || '-')}</div>
+            <div class="kv-key">Serial</div><div class="kv-val num">${escapeHtml(leaf.serial_number || '-')}</div>
+            <div class="kv-key">CT log</div><div class="kv-val">${escapeHtml(item.sourceName)} <span class="num" style="color:var(--muted)">#${escapeHtml(d.cert_index)}</span></div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title">Raw payload</div>
+          <pre class="raw-json"><code>${escapeHtml(JSON.stringify(item.raw, null, 2))}</code></pre>
+        </div>`;
+      el.inspectorContent.scrollTop = 0;
+    }
+
+    el.closeInspector.addEventListener('click', closeDrawer);
+    el.backdrop.addEventListener('click', closeDrawer);
+
+    el.copyJsonBtn.addEventListener('click', async () => {
+      if (!state.selectedItem) return;
+      try {
+        await navigator.clipboard.writeText(JSON.stringify(state.selectedItem.raw, null, 2));
+        el.copyJsonBtn.dataset.state = 'b';
+        el.copyJsonBtn.dataset.tip = 'Copied';
+        setTimeout(() => { el.copyJsonBtn.dataset.state = 'a'; el.copyJsonBtn.dataset.tip = 'Copy JSON'; }, 1400);
+      } catch (_) {}
+    });
+
+    /* Drag-to-dismiss bottom sheet: velocity flick or distance, damped upward */
+    let drag = null;
+    el.sheetHandle.addEventListener('pointerdown', e => {
+      if (!MOBILE.matches) return;
+      el.sheetHandle.setPointerCapture(e.pointerId);
+      drag = { id: e.pointerId, y0: e.clientY, t0: performance.now() };
+      el.inspector.style.transition = 'none';
+    });
+    el.sheetHandle.addEventListener('pointermove', e => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const dy = e.clientY - drag.y0;
+      el.inspector.style.transform = `translateY(${dy < 0 ? dy * 0.2 : dy}px)`;
+    });
+    function endDrag(e) {
+      if (!drag || e.pointerId !== drag.id) return;
+      const dy = e.clientY - drag.y0;
+      const v = dy / Math.max(1, performance.now() - drag.t0);
+      drag = null;
+      el.inspector.style.transition = '';
+      if (dy > 110 || v > 0.35) closeDrawer(); else el.inspector.style.transform = '';
+    }
+    el.sheetHandle.addEventListener('pointerup', endDrag);
+    el.sheetHandle.addEventListener('pointercancel', endDrag);
+
+    el.filterInput.addEventListener('input', e => {
+      state.filterText = e.target.value.trim();
+      updateFilterCompiler();
+      rerenderTable();
+    });
+
+    el.regexBtn.addEventListener('click', () => {
+      state.useRegex = !state.useRegex;
+      setToggle(el.regexBtn, state.useRegex);
+      updateFilterCompiler();
+      rerenderTable();
+    });
+
+    el.issuerSelect.addEventListener('change', e => {
+      state.issuerFilter = e.target.value;
+      rerenderTable();
+    });
+
+    el.wildcardBtn.addEventListener('click', () => {
+      state.onlyWildcard = !state.onlyWildcard;
+      setToggle(el.wildcardBtn, state.onlyWildcard);
+      rerenderTable();
+    });
+
+    el.multiSanBtn.addEventListener('click', () => {
+      state.onlyMultiSan = !state.onlyMultiSan;
+      setToggle(el.multiSanBtn, state.onlyMultiSan);
+      rerenderTable();
+    });
+
+    function togglePause() {
+      state.paused = !state.paused;
+      state.queuedWhilePaused = 0;
+      el.pauseCount.textContent = '';
+      el.pauseBtn.dataset.state = state.paused ? 'b' : 'a';
+      el.pauseBtn.classList.toggle('is-frozen', state.paused);
+      setToggle(el.pauseBtn, state.paused);
+      el.pauseBtn.setAttribute('aria-label', state.paused ? 'Resume table' : 'Freeze table');
+      el.pauseBtn.dataset.tip = state.paused ? 'Resume (Space)' : 'Freeze table (Space)';
+      updateStatusIndicator();
+    }
+    el.pauseBtn.addEventListener('click', togglePause);
+
+    window.addEventListener('keydown', e => {
+      const typing = document.activeElement === el.filterInput;
+      if (e.key === '/' && !typing) {
+        e.preventDefault();
+        el.filterInput.focus();
+      } else if (e.key === 'Escape') {
+        if (typing) el.filterInput.blur();
+        else if (state.selectedId !== null) closeDrawer();
+      } else if (e.code === 'Space' && !typing && document.activeElement.tagName !== 'BUTTON') {
+        e.preventDefault();
+        togglePause();
+      }
+    });
+
+    el.streamBtn.addEventListener('click', async () => {
+      el.streamBtn.disabled = true;
+      try {
+        const res = await fetch(state.streamEnabled ? '/stream/stop' : '/stream/start');
+        if (res.ok) {
+          const data = await res.json();
+          state.streamEnabled = Boolean(data.stream_enabled);
+          if (!state.streamEnabled) { state.recentTimestamps = []; pendingInsertions = []; }
+          updateStatusIndicator();
+        }
+      } catch (_) {}
+      el.streamBtn.disabled = false;
+    });
+
+    el.clearBtn.addEventListener('click', () => {
+      state.items = [];
+      state.matchedTotal = 0;
+      pendingInsertions = [];
+      el.certBody.innerHTML = '';
+      el.emptyState.style.display = 'flex';
+      updateStatusIndicator();
+    });
+
+    el.exportBtn.addEventListener('click', () => {
+      const lines = state.items.filter(matchesFilter).map(it => JSON.stringify(it.raw)).join('\n');
+      const url = URL.createObjectURL(new Blob([lines], { type: 'application/x-ndjson' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `certstream-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.jsonl`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    setInterval(() => {
+      const cutoff = Date.now() - 3000;
+      while (state.recentTimestamps.length && state.recentTimestamps[0] < cutoff) state.recentTimestamps.shift();
+      el.rateVal.textContent = (state.streamEnabled ? Math.round(state.recentTimestamps.length / 3) : 0).toLocaleString();
+      el.sessionVal.textContent = state.sessionTotal.toLocaleString();
+      el.matchedVal.textContent = state.matchedTotal.toLocaleString();
+    }, 500);
+
+    async function pollServerStats() {
+      try {
+        const res = await fetch('/stream/status');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (typeof data.processed_certificates === 'number') {
+          el.serverTotalVal.textContent = data.processed_certificates.toLocaleString();
+        }
+        if (typeof data.stream_enabled === 'boolean' && data.stream_enabled !== state.streamEnabled) {
+          state.streamEnabled = data.stream_enabled;
+          updateStatusIndicator();
+        }
+      } catch (_) {}
+    }
+    pollServerStats();
+    setInterval(pollServerStats, 3000);
+
+    fetch('/latest.json')
+      .then(r => r.json())
+      .then(data => {
+        if (data && Array.isArray(data.messages)) {
+          for (let i = data.messages.length - 1; i >= 0; i--) ingestMessage(data.messages[i]);
+        }
+      })
+      .catch(() => {});
+
+    function connectWs() {
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const ws = new WebSocket(`${proto}//${location.host}/`);
+      ws.onopen = () => { state.wsConnected = true; updateStatusIndicator(); };
+      ws.onmessage = event => {
+        if (!state.streamEnabled) return;
+        try { ingestMessage(JSON.parse(event.data)); } catch (_) {}
+      };
+      ws.onclose = () => { state.wsConnected = false; updateStatusIndicator(); setTimeout(connectWs, 2000); };
+    }
+    connectWs();
+  </script>
+</body>
+</html>

@@ -15,11 +15,23 @@ defmodule Certstream.CertifcateBuffer do
     Agent.start_link(
       fn ->
         :ets.new(:counter, [:named_table, :public])
-        :ets.insert(:counter, processed_certificates: 0)
+        :ets.insert(:counter, [processed_certificates: 0, stream_enabled: true])
         []
       end,
       name: __MODULE__
     )
+  end
+
+  def stream_enabled? do
+    case :ets.lookup(:counter, :stream_enabled) do
+      [{:stream_enabled, val}] -> val
+      _ -> true
+    end
+  end
+
+  def set_stream_enabled(enabled) when is_boolean(enabled) do
+    :ets.insert(:counter, {:stream_enabled, enabled})
+    enabled
   end
 
   @doc "Adds a certificate update to the circular certificate buffer"

@@ -123,37 +123,51 @@ defmodule Certstream.CTWatcher do
         state
       rescue e ->
         Logger.warn("Worker #{inspect self()} with state #{inspect state} blew up because #{inspect e}")
+        state
       end
 
     {:noreply, state}
   end
 
   def handle_info(:update, state) do
-    Logger.debug(fn -> "Worker #{inspect self()} got tick." end)
+    if not Certstream.CertifcateBuffer.stream_enabled?() do
+      schedule_update()
+      {:noreply, Map.put(state, :was_paused, true)}
+    else
+      Logger.debug(fn -> "Worker #{inspect self()} got tick." end)
 
-    current_tree_size = get_tree_size(state)
+      current_tree_size = get_tree_size(state)
 
-    Logger.debug(fn -> "Tree size #{current_tree_size} - #{state[:tree_size]}" end)
-
-    state = case current_tree_size > state[:tree_size] do
-      true ->
-        Logger.info("Worker #{inspect self()} with url #{state[:url]} found #{current_tree_size - state[:tree_size]} certificates [#{state[:tree_size]} -> #{current_tree_size}].")
-
-        cert_count = current_tree_size - state[:tree_size]
-        Instruments.increment("certstream.worker", cert_count, tags: ["url:#{state[:url]}"])
-        Instruments.increment("certstream.aggregate_owners_count", cert_count, tags: [~s(owner:#{state[:operator]["operator_name"]})])
-        
-        broadcast_updates(state, current_tree_size)
-
-        state
+      state =
+        if Map.get(state, :was_paused, false) do
+          # Skip any backlog accumulated while stopped and resume from current head
+          state
           |> Map.put(:tree_size, current_tree_size)
-          |> Map.update(:processed_count, 0, &(&1 + (current_tree_size - state[:tree_size])))
-      false -> state
+          |> Map.put(:was_paused, false)
+        else
+          Logger.debug(fn -> "Tree size #{current_tree_size} - #{state[:tree_size]}" end)
+
+          case current_tree_size > state[:tree_size] do
+            true ->
+              Logger.info("Worker #{inspect self()} with url #{state[:url]} found #{current_tree_size - state[:tree_size]} certificates [#{state[:tree_size]} -> #{current_tree_size}].")
+
+              cert_count = current_tree_size - state[:tree_size]
+              Instruments.increment("certstream.worker", cert_count, tags: ["url:#{state[:url]}"])
+              Instruments.increment("certstream.aggregate_owners_count", cert_count, tags: [~s(owner:#{state[:operator]["operator_name"]})])
+
+              broadcast_updates(state, current_tree_size)
+
+              state
+              |> Map.put(:tree_size, current_tree_size)
+              |> Map.update(:processed_count, 0, &(&1 + (current_tree_size - state[:tree_size])))
+            false -> state
+          end
+        end
+
+      schedule_update()
+
+      {:noreply, state}
     end
-
-    schedule_update()
-
-    {:noreply, state}
   end
 
   defp broadcast_updates(state, current_size) do
@@ -170,40 +184,42 @@ defmodule Certstream.CTWatcher do
   end
 
   def fetch_and_broadcast_certs(ids, state) do
-    Logger.debug(fn -> "Attempting to retrieve #{ids |> Enum.count} entries" end)
-    entries = "#{state[:url]}ct/v1/get-entries?start=#{List.first(ids)}&end=#{List.last(ids)}"
-                |> http_request_with_retries
-                |> Map.get("entries", [])
+    if Certstream.CertifcateBuffer.stream_enabled?() do
+      Logger.debug(fn -> "Attempting to retrieve #{ids |> Enum.count} entries" end)
+      entries = "#{state[:url]}ct/v1/get-entries?start=#{List.first(ids)}&end=#{List.last(ids)}"
+                  |> http_request_with_retries
+                  |> Map.get("entries", [])
 
-    entries
-      |> Enum.zip(ids)
-      |> Enum.map(fn {entry, cert_index} ->
-        entry
-          |> Certstream.CTParser.parse_entry
-          |> Map.merge(
-               %{
-                 :cert_index => cert_index,
-                 :seen => :os.system_time(:microsecond) / 1_000_000,
-                 :source => %{
-                   :url => state[:operator]["url"],
-                   :name => state[:operator]["description"],
-                 },
-                 :cert_link => "#{state[:operator]["url"]}ct/v1/get-entries?start=#{cert_index}&end=#{cert_index}"
-               }
-             )
-      end)
-      |> Certstream.ClientManager.broadcast_to_clients
+      entries
+        |> Enum.zip(ids)
+        |> Enum.map(fn {entry, cert_index} ->
+          entry
+            |> Certstream.CTParser.parse_entry
+            |> Map.merge(
+                 %{
+                   :cert_index => cert_index,
+                   :seen => :os.system_time(:microsecond) / 1_000_000,
+                   :source => %{
+                     :url => state[:operator]["url"],
+                     :name => state[:operator]["description"],
+                   },
+                   :cert_link => "#{state[:operator]["url"]}ct/v1/get-entries?start=#{cert_index}&end=#{cert_index}"
+                 }
+               )
+        end)
+        |> Certstream.ClientManager.broadcast_to_clients
 
-    entry_count = Enum.count(entries)
-    batch_count = Enum.count(ids)
+      entry_count = Enum.count(entries)
+      batch_count = Enum.count(ids)
 
-    # If we have *unequal* counts the API has returned less certificates than our initial batch
-    # heuristic. Drop the entires we retrieved and recurse to fetch others.
-    if entry_count != batch_count do
-      Logger.debug(fn ->
-        "We didn't retrieve all the entries for this batch, fetching missing #{batch_count - entry_count} entries"
-      end)
-      fetch_and_broadcast_certs(ids |> Enum.drop(Enum.count(entries)), state)
+      # If we have *unequal* counts the API has returned less certificates than our initial batch
+      # heuristic. Drop the entires we retrieved and recurse to fetch others.
+      if entry_count != batch_count and Certstream.CertifcateBuffer.stream_enabled?() do
+        Logger.debug(fn ->
+          "We didn't retrieve all the entries for this batch, fetching missing #{batch_count - entry_count} entries"
+        end)
+        fetch_and_broadcast_certs(ids |> Enum.drop(Enum.count(entries)), state)
+      end
     end
   end
 

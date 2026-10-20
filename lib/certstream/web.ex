@@ -29,20 +29,62 @@ defmodule Certstream.WebsocketServer do
     {:ok, res, %{}}
   end
 
+  # /stream/status handler
+  def init(req, [:stream_status]) do
+    body = Jason.encode!(%{
+      stream_enabled: Certstream.CertifcateBuffer.stream_enabled?(),
+      processed_certificates: Certstream.CertifcateBuffer.get_processed_certificates()
+    })
+    res = :cowboy_req.reply(200, %{'content-type' => 'application/json'}, body, req)
+    {:ok, res, %{}}
+  end
+
+  # /stream/start handler
+  def init(req, [:stream_start]) do
+    Certstream.CertifcateBuffer.set_stream_enabled(true)
+    body = Jason.encode!(%{
+      stream_enabled: true,
+      processed_certificates: Certstream.CertifcateBuffer.get_processed_certificates()
+    })
+    res = :cowboy_req.reply(200, %{'content-type' => 'application/json'}, body, req)
+    {:ok, res, %{}}
+  end
+
+  # /stream/stop handler
+  def init(req, [:stream_stop]) do
+    Certstream.CertifcateBuffer.set_stream_enabled(false)
+    body = Jason.encode!(%{
+      stream_enabled: false,
+      processed_certificates: Certstream.CertifcateBuffer.get_processed_certificates()
+    })
+    res = :cowboy_req.reply(200, %{'content-type' => 'application/json'}, body, req)
+    {:ok, res, %{}}
+  end
+
   # /stats handler
   def init(req, [:stats]) do
     processed_certs = Certstream.CertifcateBuffer.get_processed_certificates
+    stream_enabled = Certstream.CertifcateBuffer.stream_enabled?
     client_json = Certstream.ClientManager.get_clients_json
 
     workers = WatcherSupervisor
                 |> DynamicSupervisor.which_children
                 |> Enum.reduce(%{}, fn {:undefined, pid, :worker, _module}, acc ->
-                    state = :sys.get_state pid
-                    Map.put(acc, state[:url], state[:processed_count] || 0)
+                    try do
+                      case :sys.get_state(pid, 100) do
+                        state when is_map(state) ->
+                          Map.put(acc, state[:url], state[:processed_count] || 0)
+                        _ ->
+                          acc
+                      end
+                    catch
+                      :exit, _ -> acc
+                    end
                    end)
 
     response = %{}
                |> Map.put(:processed_certificates, processed_certs)
+               |> Map.put(:stream_enabled, stream_enabled)
                |> Map.put(:current_users, client_json)
                |> Map.put(:workers, workers)
                |> Jason.encode!
@@ -147,7 +189,9 @@ defmodule Certstream.WebsocketServer do
                 {@domains_only_url, __MODULE__, []},
                 {"/example.json", __MODULE__, [:example_json]},
                 {"/latest.json", __MODULE__, [:latest_json]},
-                {"/static/[...]", :cowboy_static, {:dir, "frontend/dist/static/"}},
+                {"/stream/status", __MODULE__, [:stream_status]},
+                {"/stream/start", __MODULE__, [:stream_start]},
+                {"/stream/stop", __MODULE__, [:stream_stop]},
                 {"/#{System.get_env(~s(STATS_URL)) || 'stats'}", __MODULE__, [:stats]}
               ]}
           ])

@@ -63,38 +63,40 @@ defmodule Certstream.ClientManager do
   end
 
   def broadcast_to_clients(entries) do
-    Logger.debug(fn -> "Broadcasting #{length(entries)} certificates to clients" end)
+    if Certstream.CertifcateBuffer.stream_enabled?() do
+      Logger.debug(fn -> "Broadcasting #{length(entries)} certificates to clients" end)
 
-    certificates = entries
-                     |> Enum.map(&(%{:message_type => "certificate_update", :data => &1}))
+      certificates = entries
+                       |> Enum.map(&(%{:message_type => "certificate_update", :data => &1}))
 
-    serialized_certificates_full = certificates
-                                     |> Enum.map(&Jason.encode!/1)
+      serialized_certificates_full = certificates
+                                       |> Enum.map(&Jason.encode!/1)
 
-    certificates_lite = certificates
-                          |> Enum.map(&remove_chain_from_cert/1)
-                          |> Enum.map(&remove_der_from_cert/1)
+      certificates_lite = certificates
+                            |> Enum.map(&remove_chain_from_cert/1)
+                            |> Enum.map(&remove_der_from_cert/1)
 
-    Certstream.CertifcateBuffer.add_certs_to_buffer(certificates_lite)
+      Certstream.CertifcateBuffer.add_certs_to_buffer(certificates_lite)
 
-    serialized_certificates_lite = certificates_lite
-                                     |> Enum.map(&Jason.encode!/1)
+      serialized_certificates_lite = certificates_lite
+                                       |> Enum.map(&Jason.encode!/1)
 
-    dns_entries_only = certificates
-                         |> Enum.map(&get_in(&1, [:data, :leaf_cert, :all_domains]))
-                         |> Enum.map(fn dns_entries -> %{:message_type => "dns_entries", :data => dns_entries} end)
-                         |> Enum.map(&Jason.encode!/1)
+      dns_entries_only = certificates
+                           |> Enum.map(&get_in(&1, [:data, :leaf_cert, :all_domains]))
+                           |> Enum.map(fn dns_entries -> %{:message_type => "dns_entries", :data => dns_entries} end)
+                           |> Enum.map(&Jason.encode!/1)
 
-    get_clients()
-      |> Enum.each(fn {_, client_state} ->
-        case client_state.path do
-          @full_stream_url ->         send_bundle(serialized_certificates_full, client_state.po_box)
-          @full_stream_url <> "/" ->  send_bundle(serialized_certificates_full, client_state.po_box)
-          @domains_only_url ->        send_bundle(dns_entries_only, client_state.po_box)
-          @domains_only_url <> "/" -> send_bundle(dns_entries_only, client_state.po_box)
-          _ ->                        send_bundle(serialized_certificates_lite, client_state.po_box)
-        end
-      end)
+      get_clients()
+        |> Enum.each(fn {_, client_state} ->
+          case client_state.path do
+            @full_stream_url ->         send_bundle(serialized_certificates_full, client_state.po_box)
+            @full_stream_url <> "/" ->  send_bundle(serialized_certificates_full, client_state.po_box)
+            @domains_only_url ->        send_bundle(dns_entries_only, client_state.po_box)
+            @domains_only_url <> "/" -> send_bundle(dns_entries_only, client_state.po_box)
+            _ ->                        send_bundle(serialized_certificates_lite, client_state.po_box)
+          end
+        end)
+    end
   end
 
   def send_bundle(entries, po_box) do
