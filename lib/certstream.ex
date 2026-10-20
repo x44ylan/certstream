@@ -20,7 +20,9 @@ defmodule Certstream do
 
     supervisor_info = Supervisor.start_link(children, strategy: :one_for_one)
 
-    Certstream.CTWatcher.start_and_link_watchers(name: WatcherSupervisor)
+    if System.get_env("START_PIPELINE") in ["true", "1"] do
+      Certstream.CTWatcher.start_and_link_watchers(name: WatcherSupervisor)
+    end
 
     supervisor_info
   end

@@ -12,10 +12,11 @@ defmodule Certstream.CertifcateBuffer do
   @doc "Starts the CertificateBuffer agent and creates an ETS table for tracking the certificates processed"
   def start_link(_opts) do
     Logger.info("Starting #{__MODULE__}...")
+    default_enabled = System.get_env("START_PIPELINE") in ["true", "1"]
     Agent.start_link(
       fn ->
         :ets.new(:counter, [:named_table, :public])
-        :ets.insert(:counter, [processed_certificates: 0, stream_enabled: true])
+        :ets.insert(:counter, [processed_certificates: 0, stream_enabled: default_enabled])
         []
       end,
       name: __MODULE__
@@ -25,7 +26,7 @@ defmodule Certstream.CertifcateBuffer do
   def stream_enabled? do
     case :ets.lookup(:counter, :stream_enabled) do
       [{:stream_enabled, val}] -> val
-      _ -> true
+      _ -> false
     end
   end
 
@@ -49,8 +50,10 @@ defmodule Certstream.CertifcateBuffer do
 
   @doc "The number of certificates processed"
   def get_processed_certificates do
-    :ets.lookup(:counter, :processed_certificates)
-    |> Keyword.get(:processed_certificates)
+    case :ets.lookup(:counter, :processed_certificates) do
+      [{:processed_certificates, val}] -> val
+      _ -> 0
+    end
   end
 
   @doc "Gets the latest certificate seen by Certstream, indented with 4 spaces"

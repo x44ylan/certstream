@@ -42,6 +42,7 @@ defmodule Certstream.WebsocketServer do
   # /stream/start handler
   def init(req, [:stream_start]) do
     Certstream.CertifcateBuffer.set_stream_enabled(true)
+    Certstream.CTWatcher.ensure_watchers_started()
     body = Jason.encode!(%{
       stream_enabled: true,
       processed_certificates: Certstream.CertifcateBuffer.get_processed_certificates()
